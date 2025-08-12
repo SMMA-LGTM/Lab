@@ -50,5 +50,6 @@ AESNI 指令集优化：
 等等。
 
 至于最新的指令集（GFNI、VPROLD等），即使查找资料添加相关编译选项，编译器最后也还是没能够支持GFNI指令集相关的intrinsic函数：
-<img width="975" height="669" alt="屏幕截图 2025-08-12 195737" src="https://github.com/user-attachments/assets/93cb1879-dad7-4aeb-805d-d029458a24fe" />
+<img width="704" height="214" alt="屏幕截图 2025-08-12 195737" src="https://github.com/user-attachments/assets/93cb1879-dad7-4aeb-805d-d029458a24fe" />
+
 于是就放弃了。
