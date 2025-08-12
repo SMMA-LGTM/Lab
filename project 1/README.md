@@ -216,8 +216,14 @@ int main() {
 
 运行结果：
 
-<img width="757" height="214" alt="image" src="https://github.com/user-attachments/assets/ac028b23-16d0-485f-8eac-eea034ba6479" />
+<img width="708" height="229" alt="屏幕截图 2025-08-13 015933" src="https://github.com/user-attachments/assets/1a27c781-a43a-48ba-a865-26b8a45cc2b0" />
 
+
+使用T-table方法优化后，运行结果：
+
+<img width="658" height="232" alt="image" src="https://github.com/user-attachments/assets/02295a86-d6ee-48a2-8ed8-08cd345447fb" />
+
+提升效率并不明显。
 
 
 
