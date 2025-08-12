@@ -22,6 +22,7 @@ T(x) = L(S_box(B0)<<24 | S_box(B1)<<16 | S_box(B2)<<8 | S_box(B3))= L(S_box(B0)<
    T3[b] = L( (uint32_t)S_box[b] )
 然后，对于32位输入x（拆分为b0, b1, b2, b3），有：T(x) = T0[b0] ^ T1[b1] ^ T2[b2] ^ T3[b3]
 这样，就把T变换转换成了4次查表和3次异或。
+<img width="740" height="194" alt="image" src="https://github.com/user-attachments/assets/b76d6d46-d965-45f3-aee6-a607df9f3163" />
 
 
 AESNI 指令集优化：
