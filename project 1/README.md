@@ -27,6 +27,28 @@ T(x) = L(S_box(B0)<<24 | S_box(B1)<<16 | S_box(B2)<<8 | S_box(B3))= L(S_box(B0)<
 
 
 AESNI 指令集优化：
-使用 Intel AES-NI 指令集加速加密过程
-通过__m128i数据类型和相关 intrinsics 函数利用 128 位 SIMD 操作
-优化密钥扩展和轮函数计算过程，充分利用硬件加速
+使用 Intel AES-NI 指令集加速加密过程，优化密钥扩展和轮函数计算过程，充分利用硬件加速。
+   密钥扩展优化：
+      使用__m128i向量寄存器一次处理4个32位字；
+      利用_mm_xor_si128等指令并行执行异或操作；
+      采用向量洗牌指令_mm_shuffle_epi32高效处理密钥轮转；
+   轮函数计算优化：
+      使用向量寄存器存储和操作状态数据 (X0-X3)；
+      通过_mm_insert_epi32和_mm_extract_epi32实现向量与标量的高效转换；
+      利用_mm_set1_epi32广播子密钥，加速异或操作；
+   数据转换优化：
+      使用 AESNI 加载/存储指令 (_mm_loadu_si128, _mm_storeu_si128) 优化内存操作；
+      利用_byteswap_ulong intrinsic 优化字节序转换；
+   
+然而效率反而变慢了，而且加密结果也和优化前不一致：
+<img width="704" height="214" alt="image" src="https://github.com/user-attachments/assets/8998a09b-19f4-4e23-b035-fc0ac2544e5a" />
+
+能力有限，最后也没有找到合适的解决办法。猜测可能有这些原因：
+1.AESNI 指令集是为AES算法量身设计的，而SM4的轮函数结构、密钥扩展方式与AES差异较大。
+2.SM4 算法的轮函数存在强数据依赖性：每一轮的输出依赖前一轮的结果（X[i+4]=X[i]^f(X[i+1], X[i+2], X[i+3], rk[i])），这种串行依赖导致向量寄存器（__m128i）的4个32位通道无法真正并行计算，大部分时间可能只用到了向量的1个通道。
+3.编译器可能无法完美调度AESNI指令与通用指令，导致CPU流水线停滞。
+等等。
+
+至于最新的指令集（GFNI、VPROLD等），即使查找资料添加相关编译选项，编译器最后也还是没能够支持GFNI指令集相关的intrinsic函数：
+<img width="975" height="669" alt="屏幕截图 2025-08-12 195737" src="https://github.com/user-attachments/assets/93cb1879-dad7-4aeb-805d-d029458a24fe" />
+于是就放弃了。
