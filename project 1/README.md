@@ -44,8 +44,8 @@ T(x) = L(S_box(B0)<<24 | S_box(B1)<<16 | S_box(B2)<<8 | S_box(B3))= L(S_box(B0)<
 这样，就把T变换转换成了4次查表和3次异或。
 
 这是T-table优化后的加密结果：
-<img width="740" height="194" alt="image" src="https://github.com/user-attachments/assets/b76d6d46-d965-45f3-aee6-a607df9f3163" />
 
+<img width="740" height="194" alt="image" src="https://github.com/user-attachments/assets/b76d6d46-d965-45f3-aee6-a607df9f3163" />
 
 -----------------------------------------------------------------------------------------------------------------------------
 
@@ -77,8 +77,8 @@ AESNI 指令集优化：
    
 
 然而效率反而变慢了，而且加密结果也和优化前不一致：
-<img width="704" height="214" alt="image" src="https://github.com/user-attachments/assets/8998a09b-19f4-4e23-b035-fc0ac2544e5a" />
 
+<img width="704" height="214" alt="image" src="https://github.com/user-attachments/assets/8998a09b-19f4-4e23-b035-fc0ac2544e5a" />
 
 能力有限，最后也没有找到合适的解决办法。猜测可能有这些原因：
 
@@ -90,6 +90,7 @@ AESNI 指令集优化：
 等等。
 
 至于最新的指令集（GFNI、VPROLD等），即使查找资料添加相关编译选项，编译器最后也还是没能够支持GFNI指令集相关的intrinsic函数：
+
 <img width="704" height="500" alt="屏幕截图 2025-08-12 195737" src="https://github.com/user-attachments/assets/93cb1879-dad7-4aeb-805d-d029458a24fe" />
 
 于是就放弃了。
@@ -103,44 +104,46 @@ GCM模式的核心是CTR加密和GMAC认证的结合。CTR模式提供高效加�
 ------------------------------------------------------SM4类分组密码实现------------------------------------------------
 
 class SM4 {
-
 private:
     // 常量定义
     static const uint32_t FK[4];  // 系统参数
     static const uint32_t CK[32]; // 固定参数
     uint32_t rk[32];              // 轮密钥存储
-
     // 核心操作
     static uint32_t rotl(uint32_t x, int n); // 循环左移
     static uint8_t sbox(uint8_t x);          // S盒替换
     static uint32_t byte_sub(uint32_t x);    // 字节替换
     static uint32_t L(uint32_t x);           // 线性变换
     static uint32_t F(uint32_t x0...);       // 轮函数
-
 public:
     void set_key(const uint8_t key[16]);     // 密钥扩展
     void encrypt_block(const uint8_t in[16], uint8_t out[16]); // 16字节分组加密
 };
 
 算法流程：
+  
    1.密钥扩展：
+     
       初始密钥与FK异或；
+      
       32轮迭代生成轮密钥；
+     
       每轮使用S盒和线性变换L；
+  
    2.数据加密：
+      
       32轮Feistel结构，每轮包含字节替换→线性变换→轮密钥异或；
 
 ---------------------------------------------------------GCM类认证加密模式------------------------------------------------
+
 class GCM {
 private:
     SM4 sm4;          // SM4 算法实例
     uint8_t H[16];    // 哈希子密钥
-
     // 核心操作
     void gfmul();           // 伽罗瓦域乘法
     void ghash();           // 认证哈希计算
     void generate_ctr();    // 计数器生成
-
 public:
     void set_key(const uint8_t key[16]); // 初始化密钥
     void encrypt();         // 认证加密
@@ -148,52 +151,69 @@ public:
 };
 
 加密流程：
+   
    1.初始化：使用全0明文生成哈希子密钥H
+  
    2.计数器模式加密：
+    
       Nonce-->生成计数器CTR
+     
       CTR--> SM4加密--> 密钥流--> 与明文异或
    
    3.认证标签生成：
+      
       AAD--> 填充对齐
+     
       密文--> 填充对齐
+      
       长度信息--> 填充对齐
+      
       组合数据--> GHASH计算
+     
       GHASH结果--> 与J0异或
+     
       异或结果--> 认证标签
 
 解密验证：
+   
    1.先解密数据
+  
    2.重新计算GHASH
+ 
    3.对比标签验证完整性和真实性
 
 -----------------------------------------------------测试主函数-------------------------------------------------------
+
 int main() {
     // 1. 初始化测试向量
     uint8_t key[16] = {};
     uint8_t nonce[12] = {};
     uint8_t aad[] = "Additional data";
-    
     // 2. 加密演示
     GCM gcm;
     gcm.set_key(key);
     gcm.encrypt(nonce, plaintext, ...);
-    
     // 3. 正常解密
     bool valid = gcm.decrypt();
-    
     // 4. 篡改检测测试
     ciphertext[0] ^= 0x01; // 修改密文
     valid = gcm.decrypt(); // 应返回false
 }
 
 测试流程：
+  
    1.使用标准测试向量初始化
+  
    2.执行加密并输出：密钥/Nonce/AAD/明文/生成的密文和认证标签
+  
    3.验证正常解密
+  
    4.篡改密文后验证标签检测
 
 -------------------------------------------------------------------------------------------------
+
 运行结果：
+
 <img width="757" height="214" alt="image" src="https://github.com/user-attachments/assets/ac028b23-16d0-485f-8eac-eea034ba6479" />
 
 
