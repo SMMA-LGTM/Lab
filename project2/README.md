@@ -33,10 +33,10 @@
 ```python
 magnitude = np.abs(img_f_shifted) # 获取幅度谱
 phase = np.angle(img_f_shifted) # 获取相位谱
-# 在幅度谱上做乘法嵌入（1+α\*W保证非负）
-watermarked_magnitude = magnitude \* (1 + alpha \* watermark_pattern) # 关键改进点
+# 在幅度谱上做乘法嵌入（1+α*W保证非负）
+watermarked_magnitude = magnitude * (1 + alpha * watermark_pattern) # 关键改进点
 # 重建复数频域
-watermarked_freq = watermarked_magnitude \* np.exp(1j \* phase) # 保持相位不变
+watermarked_freq = watermarked_magnitude * np.exp(1j * phase) # 保持相位不变
 ```
 
 乘法嵌入通过修改幅度谱而非直接修改复数，能更好地抵抗JPEG压缩等攻击。
@@ -45,41 +45,31 @@ watermarked_freq = watermarked_magnitude \* np.exp(1j \* phase) # 保持相位�
 
 2. 增加了完整的频域中心化处理（fftshift/ifftshift）
 
+```python
 img_f = np.fft.fft2(img, axes=(0, 1))
-
-img_f_shifted = np.fft.fftshift(img_f) _\# 低频移至中心_
-
-_\# 在中心化频域嵌入水印_
-
-watermarked_freq_shifted = img_f_shifted \* (1 + alpha \* watermark_pattern)
-
-_\# 逆中心化后逆变换_
-
+img_f_shifted = np.fft.fftshift(img_f) # 低频移至中心
+# 在中心化频域嵌入水印
+watermarked_freq_shifted = img_f_shifted * (1 + alpha * watermark_pattern)
+# 逆中心化后逆变换
 watermarked_freq = np.fft.ifftshift(watermarked_freq_shifted)
-
 watermarked = np.fft.ifft2(watermarked_freq, axes=(0, 1))
+```
 
 ****可视化优势****：中心化后，低频集中在频谱中心，水印可精准嵌入中频区域，避免修改极低频导致可见失真。
 
 --------------------------------------------------------------------------------
 
 3.使用归一化处理保证数值稳定性
-
+```python
 def normalize_image(img):
-
-return img.astype(np.float32) / 255.0 _\# 归一化到\[0,1\]_
-
-img = normalize_image(cv2.imread(img_path)) _\# 输入范围稳定_
-
+return img.astype(np.float32) / 255.0 # 归一化到[0,1]
+img = normalize_image(cv2.imread(img_path)) # 输入范围稳定
 watermark = normalize_image(cv2.imread(wm_path))
-
-_\# 处理完成后反归一化_
-
+# 处理完成后反归一化
 def denormalize_image(img):
-
-return (img \* 255).clip(0, 255).astype(np.uint8)
-
+return (img * 255).clip(0, 255).astype(np.uint8)
 cv2.imwrite(res_path, denormalize_image(watermarked))
+```
 
 归一化后所有运算在\[0,1\]范围内进行，避免溢出（如FFT后实部可能超出255）。
 
