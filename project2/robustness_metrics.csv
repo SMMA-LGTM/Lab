@@ -1,0 +1,11 @@
+attack,nc,ssim,psnr
+contrast_down,0.001,0.0024,0.34
+contrast_up,-0.0044,0.0221,2.56
+crop,0.0127,0.0033,0.71
+flip_horizontal,-0.0049,0.0043,1.87
+flip_vertical,-0.0049,0.0043,1.87
+jpeg_compress,0.0014,0.005,1.63
+noise,-0.0085,0.0081,2.24
+rotate_180,0.0342,0.0076,1.16
+rotate_90,-0.0054,0.0027,1.14
+translate,-0.0082,0.0026,1.37
