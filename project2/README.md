@@ -30,20 +30,14 @@
 
 1. 将加法嵌入改为基于幅度谱的乘法嵌入，提高鲁棒性：
 
-
-
-magnitude = np.abs(img_f_shifted) _\# 获取幅度谱_
-
-phase = np.angle(img_f_shifted) _\# 获取相位谱_
-
-_\# 在幅度谱上做乘法嵌入（1+α\*W保证非负）_
-
-watermarked_magnitude = magnitude \* (1 + alpha \* watermark_pattern) _\# 关键改进点_
-
-_\# 重建复数频域_
-
-watermarked_freq = watermarked_magnitude \* np.exp(1j \* phase) _\# 保持相位不变_
-
+```python
+magnitude = np.abs(img_f_shifted) # 获取幅度谱
+phase = np.angle(img_f_shifted) # 获取相位谱
+# 在幅度谱上做乘法嵌入（1+α\*W保证非负）
+watermarked_magnitude = magnitude \* (1 + alpha \* watermark_pattern) # 关键改进点
+# 重建复数频域
+watermarked_freq = watermarked_magnitude \* np.exp(1j \* phase) # 保持相位不变
+```
 
 乘法嵌入通过修改幅度谱而非直接修改复数，能更好地抵抗JPEG压缩等攻击。
 
