@@ -10,7 +10,6 @@
 #define ARM64_ARCH
 #endif
 
-//SM3密码杂凑算法优化实现
 class SM3 {
 private:
     static const uint32_t IV[8];  //初始向量IV
@@ -18,7 +17,6 @@ private:
     uint64_t message_length;      //当前缓冲区中的字节数
     uint64_t total_bits;          //消息总长度
     uint32_t digest[8];           //压缩函数中间结果
-
     //循环左移函数
     static inline uint32_t rotate_left(uint32_t x, uint32_t n) {
 #ifdef X86_64_ARCH
@@ -32,7 +30,6 @@ private:
         return (x << n) | (x >> (32 - n));
 #endif
     }
-
     //置换函数P0 
     static inline uint32_t P0(uint32_t x) {
 #ifdef X86_64_ARCH
@@ -45,7 +42,6 @@ private:
         return x ^ rotate_left(x, 9) ^ rotate_left(x, 17);
 #endif
     }
-
     //置换函数P1
     static inline uint32_t P1(uint32_t x) {
 #ifdef X86_64_ARCH
@@ -56,7 +52,6 @@ private:
         return x ^ rotate_left(x, 15) ^ rotate_left(x, 23);
 #endif
     }
-
     //布尔函数FF
     static inline uint32_t FF(uint32_t x, uint32_t y, uint32_t z, int j) {
 #ifdef X86_64_ARCH
@@ -72,7 +67,6 @@ private:
         return (j <= 15) ? (x ^ y ^ z) : ((x & y) | (x & z) | (y & z));
 #endif
     }
-
     //布尔函数GG
     static inline uint32_t GG(uint32_t x, uint32_t y, uint32_t z, int j) {
 #ifdef X86_64_ARCH
@@ -86,25 +80,21 @@ private:
         return (j <= 15) ? (x ^ y ^ z) : ((x & y) | (~x & z));
 #endif
     }
-
-    //常量Tj - 优化存储访问
+    //常量Tj-优化存储访问
     static inline uint32_t T(int j) {
         // 直接返回而不使用数组访问，减少内存操作
         return (j <= 15) ? 0x79CC4519 : 0x7A879D8A;
     }
-
     //消息扩展函数
     void expand(const uint8_t block[64], uint32_t W[68], uint32_t W1[64]) {
 #ifdef X86_64_ARCH
         //X86_64使用SIMD指令加速消息扩展
         __m128i vec0, vec1, vec2, vec3;
-
         //加载16个32位字到4个128位寄存器
         vec0 = _mm_loadu_si128((const __m128i*) & block[0]);
         vec1 = _mm_loadu_si128((const __m128i*) & block[16]);
         vec2 = _mm_loadu_si128((const __m128i*) & block[32]);
         vec3 = _mm_loadu_si128((const __m128i*) & block[48]);
-
         //字节序转换并存储到W[0-15]
         _mm_storeu_si128((__m128i*) & W[0], _mm_shuffle_epi8(vec0, _mm_setr_epi8(3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12)));
         _mm_storeu_si128((__m128i*) & W[4], _mm_shuffle_epi8(vec1, _mm_setr_epi8(3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12)));
@@ -114,12 +104,10 @@ private:
         //ARM64
         uint8x16_t vec0, vec1, vec2, vec3;
         uint32x4_t w;
-
         vec0 = vld1q_u8(&block[0]);
         vec1 = vld1q_u8(&block[16]);
         vec2 = vld1q_u8(&block[32]);
         vec3 = vld1q_u8(&block[48]);
-
         //字节序转换
         w = vrev32q_u32(vreinterpretq_u32_u8(vec0));
         vst1q_u32(&W[0], w);
@@ -136,13 +124,11 @@ private:
                 (block[4 * i + 2] << 8) | block[4 * i + 3];
         }
 #endif
-
         //扩展W16-W67
         for (int j = 16; j < 68; j++) {
             W[j] = P1(W[j - 16] ^ W[j - 9] ^ rotate_left(W[j - 3], 15)) ^
                 rotate_left(W[j - 13], 7) ^ W[j - 6];
         }
-
         //计算W'0-W'63
 #ifdef X86_64_ARCH
         //X86_64: 使用SIMD并行计算W'
@@ -167,12 +153,10 @@ private:
         }
 #endif
     }
-
-    //压缩函数 - 架构优化版本
+    //压缩函数
     void compress(const uint8_t block[64]) {
         uint32_t W[68], W1[64];
         expand(block, W, W1);
-
         //初始化工作变量，尽可能使用寄存器
         register uint32_t A = digest[0];
         register uint32_t B = digest[1];
@@ -182,7 +166,6 @@ private:
         register uint32_t F = digest[5];
         register uint32_t G = digest[6];
         register uint32_t H = digest[7];
-
 #ifdef X86_64_ARCH
         //X86_64: 展开部分循环，减少循环开销
         //第0-15轮
@@ -226,7 +209,6 @@ private:
             uint32_t rotTj = rotate_left(Tj, j);
             uint32_t SS1 = rotate_left(rotA12 + E + rotTj, 7);
             uint32_t SS2 = SS1 ^ rotA12;
-
             uint32_t TT1, TT2;
             if (j <= 15) {
                 TT1 = (A ^ B ^ C) + D + SS2 + W1[j];
@@ -236,7 +218,6 @@ private:
                 TT1 = ((A & B) | (A & C) | (B & C)) + D + SS2 + W1[j];
                 TT2 = ((E & F) | (~E & G)) + H + SS1 + W[j];
             }
-
             //寄存器轮转优化
             D = C;
             C = rotate_left(B, 9);
@@ -264,7 +245,6 @@ private:
             E = P0(TT2);
         }
 #endif
-
         //与初始值异或
         digest[0] ^= A;
         digest[1] ^= B;
@@ -281,7 +261,6 @@ public:
     SM3() {
         reset();
     }
-
     //重置上下文
     void reset() {
         message_length = 0;
@@ -296,7 +275,6 @@ public:
         //X86_64: 利用大块处理优化
         size_t block_aligned = length & ~(size_t)63; // 64字节对齐
         size_t remaining = length - block_aligned;
-
         //处理对齐的完整块
         for (size_t i = 0; i < block_aligned; i += 64) {
             if (message_length == 0) {
@@ -314,7 +292,6 @@ public:
                 i += copy_len - 64; //调整循环索引
             }
         }
-
         //处理剩余数据
         if (remaining > 0) {
             memcpy(&message_block[message_length], &data[block_aligned], remaining);
@@ -324,7 +301,6 @@ public:
         //ARM64:利用缓存特性优化
         size_t chunk_size = 64 * 16; //16个块为一组，适应ARM缓存
         size_t i = 0;
-
         while (i < length) {
             size_t process_len = (length - i) < chunk_size ? (length - i) : chunk_size;
 
@@ -334,7 +310,6 @@ public:
                     total_bits += 512;
                     message_length = 0;
                 }
-
                 size_t copy_len = (64 - message_length) < process_len ?
                     (64 - message_length) : process_len;
                 memcpy(&message_block[message_length], &data[i], copy_len);
@@ -355,7 +330,6 @@ public:
         }
 #endif
     }
-
     //完成哈希计算
     void final(uint8_t* result) {
         total_bits += message_length * 8;
@@ -368,11 +342,9 @@ public:
             compress(message_block);
             message_length = 0;
         }
-
         while (message_length < 56) {
             message_block[message_length++] = 0x00;
         }
-
         //存储长度
 #ifdef X86_64_ARCH
         //使用64位存储指令
@@ -386,9 +358,7 @@ public:
             message_block[56 + i] = (total_bits >> (8 * (7 - i))) & 0xFF;
         }
 #endif
-
         compress(message_block);
-
         //输出结果
 #ifdef X86_64_ARCH
         //使用SIMD指令批量转换字节序
@@ -414,10 +384,8 @@ public:
             result[4 * i + 3] = digest[i] & 0xFF;
         }
 #endif
-
         reset();
     }
-
     //计算SM3哈希值
     static void hash(const uint8_t* data, size_t length, uint8_t* result) {
         SM3 sm3;
@@ -425,19 +393,16 @@ public:
         sm3.final(result);
     }
 };
-
 //初始化IV值
 const uint32_t SM3::IV[8] = {
     0x7380166F, 0x4914B2B9, 0x172442D7, 0xDA8A0600,
     0xA96F30BC, 0x163138AA, 0xE38DEE4D, 0xB0FB0E4E
 };
-
 //辅助函数：将字节数组转换为十六进制字符串
 std::string bytes_to_hex(const uint8_t* bytes, size_t length) {
     const char* hex_chars = "0123456789ABCDEF";
     std::string hex_str;
     hex_str.reserve(length * 2);
-
 #ifdef X86_64_ARCH
     //X86_64: 展开循环优化
     size_t i = 0;
@@ -462,10 +427,8 @@ std::string bytes_to_hex(const uint8_t* bytes, size_t length) {
         hex_str += hex_chars[bytes[i] & 0x0F];
     }
 #endif
-
     return hex_str;
 }
-
 //测试函数
 void test_sm3() {
     //测试案例1：空字符串
@@ -476,7 +439,6 @@ void test_sm3() {
         std::cout << "空字符串哈希: " << hex << std::endl;
         std::cout << "预期结果: 1AB21D8355CFA17F8E61194831E81A8F79C2B6773A0FF8E534DFB6406B7EDEE" << std::endl << std::endl;
     }
-
     //测试案例2："abc"
     {
         const char* data = "abc";
@@ -490,12 +452,10 @@ void test_sm3() {
 
 int main() {
     test_sm3();
-
     //演示分块处理
     std::cout << "演示分块处理:" << std::endl;
     const char* long_data = "这是一个用于测试SM3算法分块处理的长字符串，将分多次调用update方法来处理它。";
     SM3 sm3;
-
     size_t len = strlen(long_data);
     size_t chunk_size = 10;
     for (size_t i = 0; i < len; i += chunk_size) {
@@ -505,6 +465,6 @@ int main() {
     uint8_t result[32];
     sm3.final(result);
     std::cout << "长字符串哈希: " << bytes_to_hex(result, 32) << std::endl;
-
     return 0;
 }
+
